@@ -10,7 +10,7 @@ import json
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Iterable, List, NamedTuple, Optional, Tuple
+from typing import Any, Callable, Iterable, List, NamedTuple, Optional, Tuple, Dict
 
 import hammer_config
 import python_jsonschema_objects  # type: ignore
@@ -793,6 +793,19 @@ class HammerTechnology:
                 return path
 
         return check_isfile
+
+
+    def get_metal_details(self, layer: str) -> Dict[str, any]:
+        """
+        Returns the metal details for the given layer
+        """
+        if self.config.stackup is not None:
+            for item in list(self.config.stackup):
+                if item["name"] == layer:
+                    return item
+            raise ValueError("Metal details for layer %s are not defined" % layer)
+        else:
+            raise ValueError("Tech JSON does not specify a stackup")
 
 
 class HammerTechnologyUtils:

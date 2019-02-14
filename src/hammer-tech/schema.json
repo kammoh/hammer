@@ -194,7 +194,43 @@
             "type" : "string"
           }
         },
-        "additionalProperties" : false
+        "additionalproperties" : false
+      }
+    },
+    "stackup" : {
+      "type" : "array",
+      "items" : {
+        "title" : "Metal",
+        "type" : "object",
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "index" : {
+            "type" : "integer"
+          },
+          "direction" : {
+            "type" : "string"
+          },
+          "min_width" : {
+            "type" : "number"
+          },
+          "pitch" : {
+            "type" : "number"
+          },
+          "offset" : {
+            "type" : "number"
+          },
+          "spacingtable_widths" : {
+            "type" : "array",
+            "items" : { "title": "Widths", "type" : "number" }
+          },
+          "spacingtable_spacings" : {
+            "type" : "array",
+            "items" : { "title": "Spacings", "type" : "number" }
+          }
+        },
+        "additionalproperties" : false
       }
     }
   }
