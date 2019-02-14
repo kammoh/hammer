@@ -795,7 +795,7 @@ class HammerTechnology:
         return check_isfile
 
 
-    def get_metal_details(self, layer: str) -> Dict[str, any]:
+    def get_metal_details(self, layer: str) -> Dict[str, Any]:
         """
         Returns the metal details for the given layer
         """
