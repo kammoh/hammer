@@ -23,6 +23,7 @@ from hammer_utils import (LEFUtils, add_lists, deeplist, get_or_else,
 
 from library_filter import LibraryFilter
 from filters import LibraryFilterHolder
+from stackup import Stackup
 
 # Holds the list of pre-implemented filters.
 # Access it like hammer_tech.filters.lef_filter
@@ -795,17 +796,17 @@ class HammerTechnology:
         return check_isfile
 
 
-    def get_metal_details(self, layer: str) -> Dict[str, Any]:
+    def get_stackup_by_name(self, name: str) -> "Stackup":
         """
-        Returns the metal details for the given layer
+        Returns the stackup details for the given key
         """
-        if self.config.stackup is not None:
-            for item in list(self.config.stackup):
-                if item["name"] == layer:
-                    return item
-            raise ValueError("Metal details for layer %s are not defined" % layer)
+        if self.config.stackups is not None:
+            for item in list(self.config.stackups):
+                if item["name"] == name:
+                    return Stackup.from_setting(item)
+            raise ValueError("Stackup named %s is not defined in tech JSON" % layer)
         else:
-            raise ValueError("Tech JSON does not specify a stackup")
+            raise ValueError("Tech JSON does not specify any stackups")
 
 
 class HammerTechnologyUtils:

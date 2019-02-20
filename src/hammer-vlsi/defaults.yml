@@ -367,3 +367,6 @@ lvs.submit:
   command_meta: lazysubst
   settings: "vlsi.submit.settings"
   settings_meta: lazycrossref
+
+# Key name for the technology stackup
+technology.stackup: null
