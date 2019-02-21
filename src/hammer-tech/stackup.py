@@ -34,10 +34,10 @@ class RoutingDirection(Enum):
         return reverse_dict(RoutingDirection.__mapping())[self]
 
     def opposite(self) -> "RoutingDirection":
-        if self == Vertical:
-            return Horizontal
-        elif self == Horizontal:
-            return Vertical
+        if self == RoutingDirection.Vertical:
+            return RoutingDirection.Horizontal
+        elif self == RoutingDirection.Horizontal:
+            return RoutingDirection.Vertical
         else:
             return self
 
@@ -111,7 +111,7 @@ class Metal(NamedTuple('Metal', [
     # This assumes the neighbors of the theick wire are minimum-width routes
     # i.e. M W M
     # Returns width, spacing and offset (0.0)
-    def get_max_width_for_num_tracks_to_route(self, tracks: int) -> (float, float, float):
+    def get_max_width_for_num_tracks_to_route(self, tracks: int) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
         s2w = (tracks + 1) * self.pitch - self.min_width
         spacing = ws[0].min_spacing
@@ -125,7 +125,7 @@ class Metal(NamedTuple('Metal', [
     # This assumes both neighbors are wires of the same width
     # i.e. W W W
     # Returns width, spacing, and offset (0.0)
-    def get_max_width_for_num_tracks_to_wide_wire(self, tracks: int) -> (float, float, float):
+    def get_max_width_for_num_tracks_to_wide_wire(self, tracks: int) -> Tuple[float, float, float]:
         pass
 
     # This method will return the maximum width a wire can be to consume a given number of routing tracks
@@ -134,7 +134,7 @@ class Metal(NamedTuple('Metal', [
     # Returns width, spacing, and offset
     # The offset is the offset of the wire centerline to the track (odd number of tracks) or half-track (even number of tracks)
     # Positive numbers towards min-width wire
-    def get_max_width_and_offset_for_num_tracks_to_route_and_wide_wire(self, tracks: int, force_even=False) -> (float, float, float):
+    def get_max_width_and_offset_for_num_tracks_to_route_and_wide_wire(self, tracks: int, force_even=False) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
         s3w2 = (2 * tracks + 1) * self.pitch - self.min_width
         spacing = ws[0].min_spacing

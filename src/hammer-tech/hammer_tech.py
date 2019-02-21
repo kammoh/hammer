@@ -804,7 +804,7 @@ class HammerTechnology:
             for item in list(self.config.stackups):
                 if item["name"] == name:
                     return Stackup.from_setting(item)
-            raise ValueError("Stackup named %s is not defined in tech JSON" % layer)
+            raise ValueError("Stackup named %s is not defined in tech JSON" % name)
         else:
             raise ValueError("Tech JSON does not specify any stackups")
 
