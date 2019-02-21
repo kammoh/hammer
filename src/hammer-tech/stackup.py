@@ -87,7 +87,7 @@ class Metal(NamedTuple('Metal', [
             min_width=float(d["min_width"]),
             pitch=float(d["pitch"]),
             offset=float(d["offset"]),
-            power_strap_widths_and_spacings=list(map(lambda x: WidthSpacingTuple.from_setting(x), list(d["power_strap_widths_and_spacings"])))
+            power_strap_widths_and_spacings=sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), list(d["power_strap_widths_and_spacings"]))), key=lambda x: x.width_at_least)
         )
 
     def get_spacing_for_width(self, width: float) -> float:
@@ -96,6 +96,55 @@ class Metal(NamedTuple('Metal', [
             if width >= wst.width_at_least:
                 spacing = max(spacing, wst.min_spacing)
         return spacing
+
+    def min_spacing_from_pitch(self, pitch: float) -> float:
+        ws = self.power_strap_widths_and_spacings
+        spacing = ws[0].min_spacing
+        for first, second in zip(ws[:-1], ws[1:]):
+            if pitch >= (first.min_spacing + second.width_at_least):
+                spacing = second.min_spacing
+        return spacing
+
+
+    # This method will return the maximum width a wire can be to consume a given number of routing tracks
+    # This assumes the neighbors of the theick wire are minimum-width routes
+    # i.e. M W M
+    # Returns width, spacing and offset (0.0)
+    def get_max_width_for_num_tracks_to_route(self, tracks: int) -> (float, float, float):
+        ws = self.power_strap_widths_and_spacings
+        s2w = (tracks + 1) * self.pitch - self.min_width
+        spacing = ws[0].min_spacing
+        for first, second in zip(ws[:-1], ws[1:]):
+            if s2w >= (2*first.min_spacing + second.width_at_least):
+                spacing = second.min_spacing
+        width = s2w - spacing*2
+        return (width, spacing, 0.0)
+
+    # This method will return the maximum width a wire can be to consume a given number of routing tracks
+    # This assumes both neighbors are wires of the same width
+    # i.e. W W W
+    # Returns width, spacing, and offset (0.0)
+    def get_max_width_for_num_tracks_to_wide_wire(self, tracks: int) -> (float, float, float):
+        pass
+
+    # This method will return the maximum width a wire can be to consume a given number of routing tracks
+    # This assumes one neighbor is a min width wire, and the other is the same size as this (mirrored)
+    # i.e. M W W M
+    # Returns width, spacing, and offset
+    # The offset is the offset of the wire centerline to the track (odd number of tracks) or half-track (even number of tracks)
+    # Positive numbers towards min-width wire
+    def get_max_width_and_offset_for_num_tracks_to_route_and_wide_wire(self, tracks: int) -> (float, float, float):
+        ws = self.power_strap_widths_and_spacings
+        s3w2 = (2 * tracks + 1) * self.pitch - self.min_width
+        spacing = ws[0].min_spacing
+        for first, second in zip(ws[:-1], ws[1:]):
+            if s3w2 >= (3*first.min_spacing + 2*second.width_at_least):
+                spacing = second.min_spacing
+        width = (s3w2 - spacing*3)/2
+        offset = (((1 + tracks) * self.pitch) - self.min_width - width) / 2 - spacing
+        return (width, spacing, offset)
+
+    # TODO implement M W X* W M style wires, where X is slightly narrower than W and centered on-grid
 
 # For now a stackup is just a list of metals with a meaningful keyword name
 # TODO add vias, etc. when we need them
