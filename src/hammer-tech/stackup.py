@@ -105,6 +105,7 @@ class Metal(NamedTuple('Metal', [
                 spacing = second.min_spacing
         return spacing
 
+    # XXX TODO Innovus doesn't handle odd numbers correctly (0.137 vs 0.138), these should round down
 
     # This method will return the maximum width a wire can be to consume a given number of routing tracks
     # This assumes the neighbors of the theick wire are minimum-width routes
