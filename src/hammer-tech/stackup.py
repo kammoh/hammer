@@ -134,7 +134,7 @@ class Metal(NamedTuple('Metal', [
     # Returns width, spacing, and offset
     # The offset is the offset of the wire centerline to the track (odd number of tracks) or half-track (even number of tracks)
     # Positive numbers towards min-width wire
-    def get_max_width_and_offset_for_num_tracks_to_route_and_wide_wire(self, tracks: int) -> (float, float, float):
+    def get_max_width_and_offset_for_num_tracks_to_route_and_wide_wire(self, tracks: int, force_even=False) -> (float, float, float):
         ws = self.power_strap_widths_and_spacings
         s3w2 = (2 * tracks + 1) * self.pitch - self.min_width
         spacing = ws[0].min_spacing
@@ -143,6 +143,10 @@ class Metal(NamedTuple('Metal', [
                 spacing = second.min_spacing
         width = (s3w2 - spacing*3)/2
         offset = (((1 + tracks) * self.pitch) - self.min_width - width) / 2 - spacing
+        # TODO this is assuming that a manufacturing grid is 0.001
+        if force_even and ((int(width * 1000) % 2) != 0):
+            width = width - 0.001
+            offset = offset + 0.001
         return (width, spacing, offset)
 
     # TODO implement M W X* W M style wires, where X is slightly narrower than W and centered on-grid
