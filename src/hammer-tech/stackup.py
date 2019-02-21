@@ -6,7 +6,40 @@
 #
 #  See LICENSE for licence details.
 
+from enum import Enum
 from typing import Any, Callable, Iterable, List, NamedTuple, Optional, Tuple, Dict
+from hammer_utils import reverse_dict
+
+class RoutingDirection(Enum):
+    Vertical = 1
+    Horizontal = 2
+    Redistribution = 3
+
+    @classmethod
+    def __mapping(cls) -> Dict[str, "RoutingDirection"]:
+        return {
+            "vertical": RoutingDirection.Vertical,
+            "horizontal": RoutingDirection.Horizontal,
+            "redistribution": RoutingDirection.Redistribution
+        }
+
+    @staticmethod
+    def from_str(input_str: str) -> "RoutingDirection":
+        try:
+            return RoutingDirection.__mapping()[input_str]
+        except KeyError:
+            raise ValueError("Invalid routing direction: " + str(input_str))
+
+    def __str__(self) -> str:
+        return reverse_dict(RoutingDirection.__mapping())[self]
+
+    def opposite(self) -> "RoutingDirection":
+        if self == Vertical:
+            return Horizontal
+        elif self == Horizontal:
+            return Vertical
+        else:
+            return self
 
 # Note to maintainers: This is mirrored in schema.json- don't change one without the other
 
@@ -37,7 +70,7 @@ class WidthSpacingTuple(NamedTuple('WidthSpacingTuple', [
 class Metal(NamedTuple('Metal', [
     ('name', str),
     ('index', int),
-    ('direction', str), # TODO enum
+    ('direction', "RoutingDirection"),
     ('min_width', float),
     ('pitch', float),
     ('offset', float),
@@ -50,7 +83,7 @@ class Metal(NamedTuple('Metal', [
         return Metal(
             name=str(d["name"]),
             index=int(d["index"]),
-            direction=str(d["direction"]),
+            direction=RoutingDirection.from_str(d["direction"]),
             min_width=float(d["min_width"]),
             pitch=float(d["pitch"]),
             offset=float(d["offset"]),
