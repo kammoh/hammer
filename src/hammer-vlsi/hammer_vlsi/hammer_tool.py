@@ -939,7 +939,7 @@ class HammerTool(metaclass=ABCMeta):
         Get the stackup provided by the technology key
         """
         # TODO how does python cache this? Do we need to avoid re-processing this every time?
-        return self.technology.get_stackup_by_name(self.get_setting("technology.stackup"))
+        return self.technology.get_stackup_by_name(self.get_setting("technology.core.stackup"))
 
     def get_input_ilms(self) -> List[ILMStruct]:
         """
