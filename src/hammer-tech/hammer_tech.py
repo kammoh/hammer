@@ -10,7 +10,7 @@ import json
 import os
 import subprocess
 from abc import ABCMeta, abstractmethod
-from typing import Any, Callable, Iterable, List, NamedTuple, Optional, Tuple, Dict
+from typing import Any, Callable, Iterable, List, NamedTuple, Optional, Tuple
 
 import hammer_config
 import python_jsonschema_objects  # type: ignore
