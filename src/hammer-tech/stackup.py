@@ -61,7 +61,7 @@ class WidthSpacingTuple(NamedTuple('WidthSpacingTuple', [
 
 # A metal layer and some basic info about it
 # name: M1, M2, etc.
-# index: The order in the stackup (lower # is closer to the wafer)
+# index: The order in the stackup (lower is closer to the substrate)
 # direction: The preferred routing direction of this metal layer, or "redistribution" for non-routing top-level redistribution metals like Aluminum
 # min_width: The minimum wire width for this layer
 # pitch: The minimum cross-mask pitch for this layer (NOT same-mask pitch for multiply-patterned layers)
@@ -95,18 +95,32 @@ class Metal(NamedTuple('Metal', [
         for wst in self.power_strap_widths_and_spacings:
             if width >= wst.width_at_least:
                 spacing = max(spacing, wst.min_spacing)
+            else:
+                # The list is sorted so we can early-out
+                return spacing
         return spacing
 
     def min_spacing_from_pitch(self, pitch: float) -> float:
         ws = self.power_strap_widths_and_spacings
         spacing = ws[0].min_spacing
+        # We take the width_at_least of tuple N and the spacing of tuple N+1
+        # For example:
+        #   W   S
+        #   0   1
+        #   4   2
+        #   7   3
+        #
+        #   a line of width 4 must have spacing 2, for a pitch of 6
+        #   a line of width 3.999 can have spacing 1, for a pitch of 4.999
+        #   so we check if pitch is less than W(N+1) + S(N) = 4 + 1 = 5
+        #   to be sure we can use S(N) which is 1
         for first, second in zip(ws[:-1], ws[1:]):
             if pitch >= (first.min_spacing + second.width_at_least):
                 spacing = second.min_spacing
         return spacing
 
     # This method will return the maximum width a wire can be to consume a given number of routing tracks
-    # This assumes the neighbors of the theick wire are minimum-width routes
+    # This assumes the neighbors of the wide wire are minimum-width routes
     # i.e. T W T
     # T = thin / min-width
     # W = wide
