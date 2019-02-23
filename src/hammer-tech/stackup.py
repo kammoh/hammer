@@ -54,14 +54,24 @@ class WidthSpacingTuple(NamedTuple('WidthSpacingTuple', [
 
     @staticmethod
     def from_setting(d: dict) -> "WidthSpacingTuple":
+        w = float(d["width_at_least"])
+        s = float(d["min_spacing"])
+        assert w >= 0.0
+        assert s > 0.0
         return WidthSpacingTuple(
-            width_at_least=float(d["width_at_least"]),
-            min_spacing=float(d["min_spacing"])
+            width_at_least=w,
+            min_spacing=s
         )
 
     @staticmethod
     def from_list(l: List[dict]) -> List["WidthSpacingTuple"]:
-        return sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), l)), key=lambda x: x.width_at_least)
+        out = sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), l)), key=lambda x: x.width_at_least)
+        s = 0.0
+        for wst in out:
+            assert wst.min_spacing > s
+            s = wst.min_spacing
+        return out
+
 
 # A metal layer and some basic info about it
 # name: M1, M2, etc.
@@ -81,6 +91,15 @@ class Metal(NamedTuple('Metal', [
     ('power_strap_widths_and_spacings', List[WidthSpacingTuple])
 ])):
     __slots__ = ()
+
+    # TODO this is assuming that a manufacturing grid is 0.001
+    def grid_unit(self) -> float:
+        return 0.001
+
+    # TODO internally represent numbers as integers or fixed-point to obviate the need for this
+    # ucb-bar/hammer#319
+    def snap(self, x: float) -> float:
+        return float(round(x / self.grid_unit())) * self.grid_unit()
 
     @staticmethod
     def from_setting(d: dict) -> "Metal":
@@ -105,79 +124,73 @@ class Metal(NamedTuple('Metal', [
                 return spacing
         return spacing
 
-    # Derive the minimum spacing for a maximally-sized wire given a desired pitch
-    # Use this when the wire width is unknown, but you know the pitch
+    # Derive the minimum spacing for a maximally-sized wire given a desired pitch.
+    # Use this when the wire width is unknown, but you know the pitch.
+    # This calculation essentially plots the wire width on the X axis and the minimum pitch on the Y axis.
+    # You'll see discontinuites at the width-spacing table entries. If the desired pitch falls on a sloped
+    # line (i.e. > min width for entry N but less than min width for entry N+1), pick that spacing. If
+    # the desired pitch falls on a vertical line, pick the maximum width entry for N, which is the
+    # entry for N+1 minus delta (2 grid units), and then the spacing will be larger than the min spacing.
     def min_spacing_from_pitch(self, pitch: float) -> float:
         ws = self.power_strap_widths_and_spacings
         spacing = ws[0].min_spacing
-        # We take the width_at_least of tuple N and the spacing of tuple N+1
-        # For example:
-        #   W   S
-        #   0   1
-        #   4   2
-        #   7   3
-        #
-        #   a line of width 4 must have spacing 2, for a pitch of 6
-        #   a line of width 3.999 can have spacing 1, for a pitch of 4.999
-        #   so we check if pitch is less than W(N+1) + S(N) = 4 + 1 = 5
-        #   to be sure we can use S(N) which is 1
         for first, second in zip(ws[:-1], ws[1:]):
-            if pitch >= (first.min_spacing + second.width_at_least):
+            if pitch >= (second.min_spacing + second.width_at_least):
                 spacing = second.min_spacing
+            elif pitch >= (first.min_spacing + second.width_at_least):
+                # we are asking for a pitch that is width-constrained
+                width = self.snap(second.width_at_least - (self.grid_unit()*2))
+                spacing = self.snap(pitch - width)
         return spacing
 
-    # This method will return the maximum width a wire can be to consume a given number of routing tracks
-    # This assumes the neighbors of the wide wire are minimum-width routes
+    # This method will return the maximum width a wire can be to consume a given number of routing tracks.
+    # This assumes the neighbors of the wide wire are minimum-width routes.
     # i.e. T W T
     # T = thin / min-width
     # W = wide
     # Returns width, spacing and start
+    # See min_spacing_from_pitch documentation for an explanation of the calculation.
     def get_width_spacing_start_twt(self, tracks: int) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
-        s2w = (tracks + 1) * self.pitch - self.min_width
         spacing = ws[0].min_spacing
+        # the T W T pattern contains one wires (W) and 2 spaces (S2)
+        s2w = self.snap((tracks + 1) * self.pitch - self.min_width)
+        width = self.snap(s2w - spacing*2)
         for first, second in zip(ws[:-1], ws[1:]):
-            if s2w >= (2*first.min_spacing + second.width_at_least):
+            if s2w >= (second.min_spacing*2 + second.width_at_least):
                 spacing = second.min_spacing
-        width = s2w - spacing*2
-        # TODO this is assuming that a manufacturing grid is 0.001
-        assert (int(self.min_width * 1000) % 2 == 0), "Assuming all min widths are even here, if not fix me"
-        start = self.min_width / 2 + spacing
+                width = self.snap(s2w - spacing*2)
+            elif s2w >= (first.min_spacing*2 + second.width_at_least):
+                # we are asking for a pitch that is width-constrained
+                width = self.snap(second.width_at_least - (self.grid_unit()*2))
+                spacing = self.snap((s2w - width)/2.0)
+        assert (int(self.min_width / self.grid_unit()) % 2 == 0), "Assuming all min widths are even here, if not fix me"
+        start = self.snap(self.min_width/2.0 + spacing)
         return (width, spacing, start)
-
-    # This method will return the maximum width a wire can be to consume a given number of routing tracks
-    # This assumes both neighbors are wires of the same width
-    # i.e. W W W
-    # T = thin / min-width
-    # W = wide
-    # Returns width, spacing, and start
-    def get_width_spacing_start_www(self, tracks: int, force_even=False) -> Tuple[float, float, float]:
-        raise NotImplementedError("Not yet implemented")
 
     # This method will return the maximum width a wire can be to consume a given number of routing tracks
     # This assumes one neighbor is a min width wire, and the other is the same size as this (mirrored)
     # i.e. T W W T
     # T = thin / min-width
     # W = wide
-    # Returns width, spacing, and offset
-    # The offset is the offset of the wire centerline to the track (odd number of tracks) or half-track (even number of tracks)
-    # Positive numbers towards min-width wire
-    # tracks: The integer number of tracks to consume
-    # force_even: True if you want the wire width to be an even number of manufacturing grids (assumes 0.001 for now)
-    def get_width_spacing_start_twwt(self, tracks: int, force_even=False) -> Tuple[float, float, float]:
+    # Returns width, spacing, and start
+    # See min_spacing_from_pitch documentation for an explanation of the calculation
+    def get_width_spacing_start_twwt(self, tracks: int) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
-        s3w2 = (2 * tracks + 1) * self.pitch - self.min_width
         spacing = ws[0].min_spacing
+        # the T W W T pattern contains two wires (W2) and 3 spaces (S3)
+        s3w2 = self.snap(((2*tracks) + 1) * self.pitch - self.min_width)
+        width = self.snap((s3w2 - spacing*3)/2.0)
         for first, second in zip(ws[:-1], ws[1:]):
-            if s3w2 >= (3*first.min_spacing + 2*second.width_at_least):
+            if s3w2 >= (second.min_spacing*3 + second.width_at_least*2):
                 spacing = second.min_spacing
-        width = (s3w2 - spacing*3)/2
-        start = self.min_width / 2 + spacing
-        # TODO this is assuming that a manufacturing grid is 0.001
-        # Note the rounding here seems to get around some floating-point roundoff issues in prior calculations
-        if force_even and ((int(round(width * 1000)) % 2) != 0):
-                width = width - 0.001
-                start = start + 0.001
+                width = self.snap((s3w2 - spacing*3)/2.0)
+            elif s3w2 >= (first.min_spacing*3 + second.width_at_least*2):
+                # we are asking for a pitch that is width-constrained
+                width = self.snap(second.width_at_least - (self.grid_unit()*1))
+                spacing = self.snap((s3w2 - width*2)/3.0)
+        assert (int(self.min_width / self.grid_unit()) % 2 == 0), "Assuming all min widths are even here, if not fix me"
+        start = self.snap(self.min_width/2.0 + spacing)
         return (width, spacing, start)
 
     # TODO implement M W X* W M style wires, where X is slightly narrower than W and centered on-grid
