@@ -74,21 +74,6 @@
           "gds file" : {
             "type" : "string"
           },
-          "metal layers" : {
-            "type" : "array",
-            "items" : {
-              "title" : "MetalLayer",
-              "type" : "object",
-              "properties" : {
-                "name" : {
-                  "type" : "string"
-                },
-                "preferred routing direction" : {
-                  "type" : "string"
-                }
-              }
-            }
-          },
           "milkyway lib in dir" : {
             "type" : "string"
           },

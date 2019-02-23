@@ -59,6 +59,10 @@ class WidthSpacingTuple(NamedTuple('WidthSpacingTuple', [
             min_spacing=float(d["min_spacing"])
         )
 
+    @staticmethod
+    def from_list(l: List[dict]) -> List["WidthSpacingTuple"]:
+        return sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), l)), key=lambda x: x.width_at_least)
+
 # A metal layer and some basic info about it
 # name: M1, M2, etc.
 # index: The order in the stackup (lower is closer to the substrate)
@@ -87,9 +91,10 @@ class Metal(NamedTuple('Metal', [
             min_width=float(d["min_width"]),
             pitch=float(d["pitch"]),
             offset=float(d["offset"]),
-            power_strap_widths_and_spacings=sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), list(d["power_strap_widths_and_spacings"]))), key=lambda x: x.width_at_least)
+            power_strap_widths_and_spacings=WidthSpacingTuple.from_list(d["power_strap_widths_and_spacings"])
         )
 
+    # Get the minimum spacing for a provided width
     def get_spacing_for_width(self, width: float) -> float:
         spacing = 0.0
         for wst in self.power_strap_widths_and_spacings:
@@ -100,6 +105,8 @@ class Metal(NamedTuple('Metal', [
                 return spacing
         return spacing
 
+    # Derive the minimum spacing for a maximally-sized wire given a desired pitch
+    # Use this when the wire width is unknown, but you know the pitch
     def min_spacing_from_pitch(self, pitch: float) -> float:
         ws = self.power_strap_widths_and_spacings
         spacing = ws[0].min_spacing
@@ -155,6 +162,8 @@ class Metal(NamedTuple('Metal', [
     # Returns width, spacing, and offset
     # The offset is the offset of the wire centerline to the track (odd number of tracks) or half-track (even number of tracks)
     # Positive numbers towards min-width wire
+    # tracks: The integer number of tracks to consume
+    # force_even: True if you want the wire width to be an even number of manufacturing grids (assumes 0.001 for now)
     def get_width_spacing_start_twwt(self, tracks: int, force_even=False) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
         s3w2 = (2 * tracks + 1) * self.pitch - self.min_width
@@ -190,7 +199,6 @@ class Stackup(NamedTuple('Stackup', [
 
 
     def get_metal(self, name: str) -> "Metal":
-        # TODO don't brute force this
         for m in self.metals:
             if m.name == name:
                 return m
