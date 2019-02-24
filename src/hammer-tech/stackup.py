@@ -155,6 +155,7 @@ class Metal(NamedTuple('Metal', [
         spacing = ws[0].min_spacing
         # the T W T pattern contains one wires (W) and 2 spaces (S2)
         s2w = self.snap((tracks + 1) * self.pitch - self.min_width)
+        assert (int(self.snap(s2w / self.grid_unit())) % 2 == 0), "This calculation should always produce an even s2w"
         width = self.snap(s2w - spacing*2)
         for first, second in zip(ws[:-1], ws[1:]):
             if s2w >= (second.min_spacing*2 + second.width_at_least):
@@ -162,10 +163,15 @@ class Metal(NamedTuple('Metal', [
                 width = self.snap(s2w - spacing*2)
             elif s2w >= (first.min_spacing*2 + second.width_at_least):
                 # we are asking for a pitch that is width-constrained
-                width = self.snap(second.width_at_least - (self.grid_unit()*2))
+                if (int(second.width_at_least / self.grid_unit()) % 2 == 0):
+                    # even
+                    width = self.snap(second.width_at_least - (self.grid_unit()*2))
+                else:
+                    # odd
+                    width = self.snap(second.width_at_least - self.grid_unit())
                 spacing = self.snap((s2w - width)/2.0)
-        assert (int(self.min_width / self.grid_unit()) % 2 == 0), "Assuming all min widths are even here, if not fix me"
-        assert (int(width / self.grid_unit()) % 2 == 0), "This calculation should always produce an even width"
+        assert (int(self.snap(self.min_width / self.grid_unit())) % 2 == 0), "Assuming all min widths are even here, if not fix me"
+        assert (int(self.snap(width / self.grid_unit())) % 2 == 0), "This calculation should always produce an even width"
         start = self.snap(self.min_width/2.0 + spacing)
         return (width, spacing, start)
 
