@@ -68,7 +68,7 @@ class WidthSpacingTuple(NamedTuple('WidthSpacingTuple', [
         out = sorted(list(map(lambda x: WidthSpacingTuple.from_setting(x), l)), key=lambda x: x.width_at_least)
         s = 0.0
         for wst in out:
-            assert wst.min_spacing > s
+            assert wst.min_spacing >= s
             s = wst.min_spacing
         return out
 
@@ -165,6 +165,7 @@ class Metal(NamedTuple('Metal', [
                 width = self.snap(second.width_at_least - (self.grid_unit()*2))
                 spacing = self.snap((s2w - width)/2.0)
         assert (int(self.min_width / self.grid_unit()) % 2 == 0), "Assuming all min widths are even here, if not fix me"
+        assert (int(width / self.grid_unit()) % 2 == 0), "This calculation should always produce an even width"
         start = self.snap(self.min_width/2.0 + spacing)
         return (width, spacing, start)
 
@@ -175,7 +176,8 @@ class Metal(NamedTuple('Metal', [
     # W = wide
     # Returns width, spacing, and start
     # See min_spacing_from_pitch documentation for an explanation of the calculation
-    def get_width_spacing_start_twwt(self, tracks: int) -> Tuple[float, float, float]:
+    # force_even: True to force the strap width to be an even multiple of the grid unit
+    def get_width_spacing_start_twwt(self, tracks: int, force_even: bool = False) -> Tuple[float, float, float]:
         ws = self.power_strap_widths_and_spacings
         spacing = ws[0].min_spacing
         # the T W W T pattern contains two wires (W2) and 3 spaces (S3)
@@ -191,6 +193,9 @@ class Metal(NamedTuple('Metal', [
                 spacing = self.snap((s3w2 - width*2)/3.0)
         assert (int(self.min_width / self.grid_unit()) % 2 == 0), "Assuming all min widths are even here, if not fix me"
         start = self.snap(self.min_width/2.0 + spacing)
+        if force_even and (int(width / self.grid_unit()) % 2 == 1):
+            width = self.snap(width - self.grid_unit())
+            start = self.snap(start + self.grid_unit())
         return (width, spacing, start)
 
     # TODO implement M W X* W M style wires, where X is slightly narrower than W and centered on-grid
