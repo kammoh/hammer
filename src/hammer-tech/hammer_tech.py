@@ -795,10 +795,9 @@ class HammerTechnology:
 
         return check_isfile
 
-
-    def get_stackup_by_name(self, name: str) -> "Stackup":
+    def get_stackup_by_name(self, name: str) -> Stackup:
         """
-        Returns the stackup details for the given key
+        Return the stackup details for the given key.
         """
         if self.config.stackups is not None:
             for item in list(self.config.stackups):
