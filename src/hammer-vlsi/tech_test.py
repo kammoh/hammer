@@ -16,9 +16,8 @@ from typing import Any, Dict, List
 
 from hammer_logging import HammerVLSILogging
 import hammer_tech
-from hammer_tech import LibraryFilter
+from hammer_tech import LibraryFilter, Stackup, Metal, WidthSpacingTuple
 from hammer_utils import deepdict
-from hammer_tech import Stackup, Metal, WidthSpacingTuple
 
 
 class HammerTechnologyTest(HasGetTech, unittest.TestCase):

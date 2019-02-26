@@ -275,14 +275,13 @@ class Metal(NamedTuple('Metal', [
         This method will return the maximum width a wire can be in order
         to consume a given number of routing tracks.
         This assumes that the wires are in the following configuration.
-        TODO: double check that this pydoc is correct
         i.e. T W W T
         T = thin / min-width
         W = wide
         See min_spacing_and_max_width_from_pitch for an explanation of the calculation.
 
         :param tracks: Number of routing tracks to consume
-        :param force_even: TODO document me
+        :param force_even: Forces the width of the wire to be an even multiple of the unit grid
         :return: Returns tuple of (width, spacing, start)
         """
         widths_and_spacings = self.power_strap_widths_and_spacings
