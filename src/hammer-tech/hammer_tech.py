@@ -23,7 +23,7 @@ from hammer_utils import (LEFUtils, add_lists, deeplist, get_or_else,
 
 from library_filter import LibraryFilter
 from filters import LibraryFilterHolder
-from stackup import Stackup
+from stackup import RoutingDirection, WidthSpacingTuple, Metal, Stackup
 
 # Holds the list of pre-implemented filters.
 # Access it like hammer_tech.filters.lef_filter
